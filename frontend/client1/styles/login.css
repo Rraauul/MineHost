@@ -1,0 +1,203 @@
+/* Reset et styles généraux */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f5f6fa;
+    color: #333;
+    height: 100vh;
+    overflow: hidden;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Barre latérale */
+.sidebar {
+    width: 256px;
+    background-color: #1e1e1e;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 20px 0;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    padding: 0 20px 20px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.logo img {
+    margin-right: 10px;
+}
+
+.nav-menu ul {
+    padding: 0;
+}
+
+.nav-menu li {
+    padding: 10px 20px;
+    margin: 5px 0;
+    display: flex;
+    align-items: center;
+}
+
+.nav-menu li:hover {
+    background-color: #333;
+    border-left: 3px solid #3498db;
+}
+
+.icon {
+    margin-right: 10px;
+}
+
+.bottom-menu {
+    margin-top: auto;
+    border-top: 1px solid #333;
+    padding-top: 20px;
+}
+
+/* Contenu principal */
+.main-content {
+    flex-grow: 1;
+    padding: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f5f6fa;
+}
+
+/* Formulaire de connexion */
+.login-container {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+    width: 450px;
+    text-align: center;
+}
+
+.login-container h1 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 24px;
+}
+
+.login-container p {
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.login-form {
+    text-align: left;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #555;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+}
+
+.remember-me input {
+    margin-right: 8px;
+}
+
+.forgot-password {
+    color: #3498db;
+    font-size: 14px;
+}
+
+.forgot-password:hover {
+    text-decoration: underline;
+}
+
+.login-btn {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 12px;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.login-btn:hover {
+    background-color: #2980b9;
+}
+
+.login-message {
+    margin-top: 15px;
+    font-size: 14px;
+    height: 20px;
+}
+
+.login-message.error {
+    color: #e74c3c;
+}
+
+.login-message.success {
+    color: #2ecc71;
+}
+
+.register-link {
+    margin-top: 25px;
+    font-size: 14px;
+}
+
+.register-link a {
+    color: #3498db;
+    font-weight: 500;
+}
+
+.register-link a:hover {
+    text-decoration: underline;
+}

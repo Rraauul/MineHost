@@ -1,0 +1,56 @@
+
+#Choose if biome should generate
+[per_biome_options]
+	#Boreal Forest
+	#Default: true
+	boreal_forest = true
+	#Fir Forest
+	#Default: true
+	fir_forest = true
+	#Flower Taiga
+	#Default: true
+	flower_taiga = true
+	#Frozen Caves
+	#Default: true
+	frozen_caves = true
+	#Maple Forest
+	#Default: true
+	maple_forest = true
+	#Mixed Forest
+	#Default: true
+	mixed_forest = true
+	#Old Growth Fir Forest
+	#Default: true
+	old_growth_fir_forest = true
+	#Snowy Fir Forest
+	#Default: true
+	snowy_fir_forest = true
+	#Willow Swamp
+	#Default: true
+	willow_swamp = true
+	#Maple Taiga
+	#Default: true
+	maple_taiga = true
+	#Marshland
+	#Default: true
+	marshland = true
+
+#Change rarity of each NA biome group
+[region_weights]
+	#Weight of NA cave region
+	#Range: 1-2147483647
+	#Default: 10
+	cave_region_weight = 10
+	#Weight of NA first region
+	#Range: 1-2147483647
+	#Default: 10
+	first_region_weight = 10
+	#Weight of NA second region
+	#Range: 1-2147483647
+	#Default: 10
+	second_region_weight = 8
+	#Weight of NA third region
+	#Range: 1-2147483647
+	#Default: 10
+	third_region_weight = 10
+

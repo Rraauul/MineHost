@@ -1,0 +1,78 @@
+/* login.css */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #f5eded;
+    font-family: Arial, sans-serif;
+    color: #432d2d;
+}
+
+main {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(100vh - 180px);
+}
+
+.login-form {
+    background-color: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-form h2 {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.login-form button {
+    width: 100%;
+    padding: 12px;
+    background-color: #57f2f2;
+    color: #432d2d;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.login-form button:hover {
+    background-color: #3dd;
+}
+
+.login-form .register {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.login-form .register a {
+    color: #432d2d;
+    text-decoration: underline;
+}
+
+#motDepasseInfo {
+    color: red;
+    /* Met le texte en rouge */
+    font-size: 11px;
+    /* Réduit la taille de la police */
+    margin-left: 20px;
+    /* Décale le texte vers la droite */
+    display: inline-block;
+    /* Permet de manipuler la position sans affecter les autres éléments */
+    /* font-weight: bold;          /* Met le texte en gras */
+}

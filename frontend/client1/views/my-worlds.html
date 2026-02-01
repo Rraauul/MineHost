@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MineHost - My Worlds</title>
+    <link rel="stylesheet" href="../styles/dashboard.css" />
+    <link rel="stylesheet" href="../styles/my-worlds.css" />
+    <link rel="icon" href="Images/favicon.png" />
+    <style>
+      /* Styles supplémentaires pour l'état vide */
+      .empty-worlds-message {
+        width: 100%;
+        padding: 40px 20px;
+        text-align: center;
+      }
+
+      .empty-state {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 30px;
+        margin: 20px auto;
+        max-width: 500px;
+      }
+
+      .empty-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.6;
+      }
+
+      .create-world-btn {
+        display: inline-block;
+        background-color: #4caf50;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 4px;
+        text-decoration: none;
+        margin-top: 20px;
+        transition: background-color 0.3s;
+      }
+
+      .create-world-btn:hover {
+        background-color: #45a049;
+      }
+
+      /* Style pour le message de statut */
+      #status-message {
+        padding: 12px;
+        margin: 10px 0;
+        border-radius: 4px;
+        text-align: center;
+      }
+
+      .status-message.info {
+        background-color: #e3f2fd;
+        color: #0d47a1;
+      }
+
+      .status-message.success {
+        background-color: #e8f5e9;
+        color: #1b5e20;
+      }
+
+      .status-message.error {
+        background-color: #ffebee;
+        color: #b71c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="logo">
+        <i class="icon">@</i>
+        <span>MineHost</span>
+      </div>
+
+      <a href="dashboard.html" class="menu-item">
+        <i class="icon">⊞</i>
+        <span>DashBoard</span>
+      </a>
+
+      <a href="create-world.html" class="menu-item">
+        <i class="icon">⧉</i>
+        <span>Create World</span>
+      </a>
+
+      <a href="my-worlds.html" class="menu-item active">
+        <i class="icon">☁</i>
+        <span>My Worlds</span>
+      </a>
+
+      <div class="spacer"></div>
+
+      <div class="bottom-menu">
+        <a href="#" class="menu-item">
+          <i class="icon">?</i>
+          <span>Help</span>
+        </a>
+
+        <a href="contact.html" class="menu-item">
+          <i class="icon">✉</i>
+          <span>Contact us</span>
+        </a>
+
+        <a href="#" class="menu-item" id="logout-btn">
+          <i class="icon">↪</i>
+          <span>Log out</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Toggle sidebar button -->
+    <div class="toggle-sidebar" id="toggle-sidebar">
+      <span>◀</span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="header">
+        <div class="header-left">
+          <h1>My Worlds</h1>
+        </div>
+
+        <div class="user-profile">
+          <img src="../Images/userLogo.png" alt="Profile Photo" />
+          <span><!-- Le nom d'utilisateur sera inséré ici par JS --></span>
+        </div>
+      </div>
+
+      <div class="worlds-container">
+        <div class="worlds-panel">
+          <div class="usage-info">
+            <!-- Les informations d'utilisation seront insérées ici par JS -->
+          </div>
+
+          <div class="world-list">
+            <!-- La liste des mondes sera générée dynamiquement par JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/service/httpService.js" type="module"></script>
+    <script src="../js/controller/AuthGuard.js" type="module"></script>
+    <script src="../js/controller/my-worlds.js" type="module"></script>
+  </body>
+</html>

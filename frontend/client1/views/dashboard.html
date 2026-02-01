@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MineHost - Dashboard</title>
+    <link rel="stylesheet" href="../styles/dashboard.css" />
+    <link rel="icon" href="Images/favicon.png" />
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="logo">
+        <i class="icon">@</i>
+        <span>MineHost</span>
+      </div>
+
+      <a href="dashboard.html" class="menu-item active">
+        <i class="icon">⊞</i>
+        <span>DashBord</span>
+      </a>
+
+      <a href="create-world.html" class="menu-item">
+        <i class="icon">⧉</i>
+        <span>Create Wolrd</span>
+      </a>
+
+      <a href="my-worlds.html" class="menu-item">
+        <i class="icon">☁</i>
+        <span>My Worlds</span>
+      </a>
+
+      <div class="spacer"></div>
+
+      <div class="bottom-menu">
+        <a href="#" class="menu-item">
+          <i class="icon">?</i>
+          <span>Help</span>
+        </a>
+
+        <a href="contact.html" class="menu-item">
+          <i class="icon">✉</i>
+          <span>Contact us</span>
+        </a>
+
+        <a href="#" class="menu-item" id="logout-btn">
+          <i class="icon">↪</i>
+          <span>Log out</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="header">
+        <div class="header-left">
+          <h1>Welcome back, Raul</h1>
+          <p>Here are today's stats from your online Servers!</p>
+        </div>
+
+        <div class="user-profile">
+          <img src="../Images/userLogo.png" alt="Profile Photo" />
+          <span>Raul Fuentes</span>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <!-- Offer Card -->
+        <div class="dashboard-card offer-card">
+          <div class="card-header">
+            <div class="card-icon">
+              <span>📦</span>
+            </div>
+            <div class="card-title">Your offer</div>
+          </div>
+
+          <div class="card-content">
+            <h3>Beginner</h3>
+            <h3>10Mo/50Mo</h3>
+          </div>
+        </div>
+
+        <!-- Worlds Status Card -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <div class="card-icon">
+              <span>👁</span>
+            </div>
+            <div class="card-title">Wolrds On/Off</div>
+          </div>
+
+          <div class="card-content" style="flex-direction: column; width: 100%">
+            <div class="server-status">
+              <span>ZWGDATA</span>
+              <span class="status-icon online">✓</span>
+            </div>
+            <div class="server-status">
+              <span>Chill</span>
+              <span class="status-icon offline">⊗</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total Worlds Card -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <div class="card-icon">
+              <span>👁</span>
+            </div>
+            <div class="card-title">Total of Wolrds</div>
+          </div>
+
+          <div class="card-content">
+            <h2>4</h2>
+          </div>
+        </div>
+
+        <!-- Create Server Card -->
+        <div class="create-server-row">
+          <div class="dashboard-card create-server-card" id="create-server-btn">
+            <div class="card-icon">
+              <span>⚙</span>
+            </div>
+            <div class="card-title">Create Server</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/service/httpService.js" type="module"></script>
+    <script src="../js/controller/AuthGuard.js" type="module"></script>
+    <script src="../js/controller/dashboard.js" type="module"></script>
+  </body>
+</html>

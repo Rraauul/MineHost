@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Espace Client - MineHost</title>
+    <link rel="stylesheet" href="styles/clientParam.css">
+    <link rel="stylesheet" href="styles/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="javascripts/serviceHttp.js"></script>
+    <script src="javascripts/clientParam.js"></script>
+    <link rel="icon" href="images/logo.png">
+</head>
+
+<body>
+    <header>
+        <div class="header-container">
+            <a href="accueil.html" class="logo-button">
+                <img src="images/logo.png" alt="Logo MineHost" class="logo">
+            </a>
+    
+            <nav class="menu-nav">
+                <button class="nav-btn" onclick="location.href='offres.html'">nos offres</button>
+                <button class="nav-btn" onclick="location.href='support.html'">assistance</button>
+                <button class="nav-btn" onclick="location.href='tuto.html'">tutoriel</button>
+            </nav>
+    
+            <div class="user-panel">
+                <div class="user-info-row">
+                    <a href="login.html" id="avatar-link">
+                        <img id="avatar" src="images/usernc.png" alt="Avatar">
+                    </a>
+                    <span id="user-name">non connecté</span>
+                    <img src="images/emeraude.png" alt="Emeraude" width="20">
+                    <span id="emerald-count">0</span>
+                    <a href="clientParam.html">
+                        <button class="recharge-btn">recharger</button>
+                    </a>
+                </div>
+                <p class="offre-text">Offre : <span id="abonnement-info">Aucune</span></p>
+            </div>
+        </div>
+    </header>
+    <h2>Bienvenue dans votre espace client</h2>
+    <a class="logout" onClick="clientParamInstance.deconnexion()">Se déconnecter</a>
+    <main>
+       
+        <section>
+            <div class="container">
+              
+                <div class="content">
+                    <div class="parametre">
+                        <h2>paramètre</h2>
+                        <div class="form-section">
+                            <h3>Changer de nom</h3>
+                            <input type="text" id="input-nom" placeholder="nouveau nom">
+                            <button onclick="clientParamInstance.changeName()">Enregistrer</button>
+                        </div>
+                        <hr>
+                        <div class="form-section">
+                            <h3>Changer le mot de passe</h3>
+                            <input type="password" id="new-password" placeholder="Nouveau mot de passe">
+                            <input type="password" id="confirm-password" placeholder="Confirmer le mot de passe">
+                            <label id="password-message" class="feedback-label"></label>
+                            <button onclick="clientParamInstance.changePassword()">Enregistrer</button>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+           
+        </section>
+        <section>
+            <div class="container">
+              
+                <div class="content">                    
+                    <div class="recharge">
+                        <h2>recharger vos émeraudes</h2>
+                        <div class="option">
+                            <span><img src="images/emeraude.png"alt="Emeraude" width="20"> 1 → 1 CHF</span>
+                            <button  onClick="clientParamInstance.addEmeraude(1)" >Commander</button>
+                        </div>
+                        <div class="option">
+                            <span><img src="images/emeraude.png" alt="Emeraude" width="20"> 5 → 4.5 CHF <small class="reduc">5%</small></span>
+                            <button onClick="clientParamInstance.addEmeraude(5)" >Commander</button>
+                        </div>
+                        <div class="option">
+                            <span><img src="images/emeraude.png" alt="Emeraude" width="20"> 10 → 8.5 CHF <small class="reduc">10%</small></span>
+                            <button  onClick="clientParamInstance.addEmeraude(10)">Commander</button>
+                        </div>
+                        <div class="option">
+                            <span><img src="images/emeraude.png" alt="Emeraude" width="20"> 20 → 15 CHF <small class="reduc">25%</small></span>
+                            <button onClick="clientParamInstance.addEmeraude(20)" >Commander</button>
+                        </div>
+                        
+                    </div>
+                </div>
+               
+            </div>
+           
+        </section>
+        
+    </main>
+    
+    <script src="javascripts/utils.js"></script>
+    <script>
+        utils.updateUserUI();
+    </script>
+</body>
+
+</html>

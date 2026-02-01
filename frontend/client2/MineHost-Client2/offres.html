@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>MineHost - Nos Offres</title>
+    <link rel="stylesheet" href="styles/offres.css">
+    <link rel="stylesheet" href="styles/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="javascripts/serviceHttp.js"></script>
+    <script src="javascripts/offres.js"></script>
+    <link rel="icon" href="images/logo.png">
+</head>
+
+<body>
+    <header>
+        <div class="header-container">
+            <a href="accueil.html" class="logo-button">
+                <img src="images/logo.png" alt="Logo MineHost" class="logo">
+            </a>
+    
+            <nav class="menu-nav">
+                <button class="nav-btn" onclick="location.href='offres.html'">nos offres</button>
+                <button class="nav-btn" onclick="location.href='support.html'">assistance</button>
+                <button class="nav-btn" onclick="location.href='tuto.html'">tutoriel</button>
+            </nav>
+    
+            <div class="user-panel">
+                <div class="user-info-row">
+                    <a href="login.html" id="avatar-link">
+                        <img id="avatar" src="images/usernc.png" alt="Avatar">
+                    </a>
+                    <span id="user-name">non connecté</span>
+                    <img src="images/emeraude.png" alt="Emeraude" width="20">
+                    <span id="emerald-count">0</span>
+                    <a href="clientParam.html">
+                        <button class="recharge-btn">recharger</button>
+                    </a>
+                </div>
+                <p class="offre-text">Offre : <span id="abonnement-info">Aucune</span></p>
+            </div>
+        </div>
+    </header>
+
+
+    <main>
+        <h2>Découvrez nos offres :</h2>
+        <div id="offresContainer"></div>
+
+    </main>
+    <script src="javascripts/utils.js"></script>
+    <script>
+        utils.updateUserUI();
+    </script>
+</body>
+
+</html>

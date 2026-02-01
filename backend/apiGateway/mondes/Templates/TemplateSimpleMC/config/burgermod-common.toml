@@ -1,0 +1,49 @@
+
+[common]
+
+	#Properties related to Burger Mod effects
+	[common.effects_config]
+		#Adjust the effect duration in ticks here. 20 ticks = 1 second, 200 ticks = 10 seconds etc.
+		rawEggEffectDuration = 200
+		#Adjust the effect level here. 0 = level 1, 1 = level 2 etc.
+		rawEggEffectAmplifier = 0
+		#Adjust the effect duration in ticks here. 20 ticks = 1 second, 200 ticks = 10 seconds etc.
+		rawChampignonEffectDuration = 600
+		#Adjust the effect level here. 0 = level 1, 1 = level 2 etc.
+		rawChampignonEffectAmplifier = 1
+
+		#Properties related to Golden Burger effects
+		[common.effects_config.golden_burger_effects]
+			#Adjust the regeneration effect duration in ticks here. 20 ticks = 1 second, 200 ticks = 10 seconds etc.
+			goldenBurgerRegenDuration = 100
+			#Adjust the regeneration effect level here. 0 = level 1, 1 = level 2 etc.
+			goldenBurgerRegenAmplifier = 1
+			#Adjust the absorption effect duration in ticks here. 20 ticks = 1 second, 200 ticks = 10 seconds etc.
+			goldenBurgerAbsorptionDuration = 1200
+			#Adjust the absorption effect level here. 0 = level 1, 1 = level 2 etc.
+			goldenBurgerAbsorptionAmplifier = 0
+
+		#Properties related to Enchanted Golden Burger effects
+		[common.effects_config.enchanted_golden_burger_effects]
+			#Adjust the regeneration effect duration in ticks here. 20 ticks = 1 second, 200 ticks = 10 seconds etc.
+			enchantedGoldenBurgerRegenDuration = 400
+			#Adjust the regeneration effect level here. 0 = level 1, 1 = level 2 etc.
+			enchantedGoldenBurgerRegenAmplifier = 1
+			#Adjust the damage resistance effect duration in ticks here. 20 ticks = 1 second, 200 ticks = 10 seconds etc.
+			enchantedGoldenBurgerDamageResistDuration = 5000
+			#Adjust the damage resistance effect level here. 0 = level 1, 1 = level 2 etc.
+			enchantedGoldenBurgerDamageResistAmplifier = 0
+			#Adjust the fire resistance effect duration in ticks here. 20 ticks = 1 second, 200 ticks = 10 seconds etc.
+			enchantedGoldenBurgerFireResistDuration = 5000
+			#Adjust the fire resistance effect level here. 0 = level 1, 1 = level 2 etc.
+			enchantedGoldenBurgerFireResistAmplifier = 0
+			#Adjust the absorption effect duration in ticks here. 20 ticks = 1 second, 200 ticks = 10 seconds etc.
+			enchantedGoldenBurgerAbsorptionDuration = 1600
+			#Adjust the absorption effect level here. 0 = level 1, 1 = level 2 etc.
+			enchantedGoldenBurgerAbsorptionAmplifier = 3
+
+	#Loot related config options
+	[common.loot_config]
+		#If true, items from this mod are added to vanilla loot tables. True by default.
+		generateChestLoot = true
+
