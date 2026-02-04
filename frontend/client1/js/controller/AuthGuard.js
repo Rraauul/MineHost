@@ -14,7 +14,7 @@ class AuthGuard {
     const currentPath = window.location.pathname;
 
     // Pages qui ne nécessitent pas d'authentification
-    const publicPages = ["/133/index.html"];
+    const publicPages = ["/frontend/client1/index.html"];
 
     // Vérifier si la page actuelle requiert une authentification
     const requiresAuth = !publicPages.includes(currentPath);
@@ -22,11 +22,11 @@ class AuthGuard {
     if (requiresAuth && !isAuthenticated) {
       // Rediriger vers la page de connexion si non authentifié
       console.log("Accès non autorisé, redirection vers la page de connexion");
-      window.location.href = "/133/index.html";
-    } else if (!requiresAuth && isAuthenticated && currentPath !== "/") {
+      window.location.href = "/frontend/client1/index.html";
+    } else if (!requiresAuth && isAuthenticated && currentPath !== "/frontend/client1/index.html") {
       // Rediriger vers le dashboard si déjà authentifié et sur une page publique
       console.log("Déjà connecté, redirection vers le dashboard");
-      window.location.href = "/133/views/dashboard.html";
+      window.location.href = "/frontend/client1/views/dashboard.html";
     }
 
     // Configurer les événements de déconnexion

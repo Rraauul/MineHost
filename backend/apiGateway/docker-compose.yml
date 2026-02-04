@@ -1,8 +1,0 @@
-services:
-  apigateway:
-    image: apigateway
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-    ports:
-      - 8081:8081

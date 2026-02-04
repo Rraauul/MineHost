@@ -1,0 +1,49 @@
+name: minehost-project # <--- Définit le nom du projet Compose
+
+services:
+  mysql:
+    image: mysql/mysql-server:8.0
+    container_name: mysql
+    networks:
+      - asgard
+    ports:
+      - "3308:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=emf123
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_DATABASE=db_gestion_minecraft
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # Ajout du Healthcheck pour vérifier que MySQL est prêt
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pemf123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  minehost:
+    build: 
+
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: minehost
+    # Modification du depends_on pour attendre la santé du service
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - asgard
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=jdbc:mysql://mysql:3306/db_gestion_minecraft
+    volumes:
+      - ./mondes:/home/fuentesr/mondes
+
+networks:
+  asgard:
+    driver: bridge
+
+volumes:
+  mysql_data:

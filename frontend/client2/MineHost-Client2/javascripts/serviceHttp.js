@@ -1,5 +1,5 @@
 
-//var BASE_URL = "../../apiGateway/src/main/java/com/example/APIGateWay/controller/Controller.java";
+//var BASE_URL = "../../REST/src/main/java/com/example/REST/controller/Controller.java";
 var BASE_URL = "https://apigw.fuentesr.emf-informatique.ch/";
 class ServiceHttp {
     constructor() { }

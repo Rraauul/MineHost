@@ -1,6 +1,7 @@
 class HttpService {
   constructor() {
-    this.baseUrl = "https://apigw.fuentesr.emf-informatique.ch/";
+    this.baseUrl = "http://localhost:8080/";
+    //this.baseUrl = "https://apigw.fuentesr.emf-informatique.ch/";
     this.isAuthenticated = this.checkAuthentication();
   }
 
@@ -74,7 +75,7 @@ class HttpService {
       localStorage.removeItem("authToken");
 
       // Redirection vers la page de connexion
-      window.location.href = "/133/index.html";
+      window.location.href = "/frontend/client1/index.html";
 
       return true;
     } catch (error) {
@@ -86,7 +87,7 @@ class HttpService {
   // Vérifie si l'utilisateur est authentifié, sinon redirige
   ensureAuthenticated() {
     if (!this.checkAuthentication()) {
-      window.location.href = "/133/index.html";
+      window.location.href = "/frontend/client1/index.html";
 
       return false;
     }
