@@ -1,27 +1,21 @@
 # Image de base
 FROM ubuntu:22.04
 
-# Installation des dépendances (Java 21 et Maven)
+# Installation des dépendances (Java 21, Maven et Docker CLI)
 RUN apt-get update && \
     apt-get install -y \
     openjdk-21-jdk \
     maven \
-    screen \
-    curl && \
-    # Installation de ngrok
-    curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | \
-    tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null && \
-    echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | \
-    tee /etc/apt/sources.list.d/ngrok.list && \
-    apt-get update && \
-    apt-get install -y ngrok && \
+    curl \
+    docker.io && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Configuration de l'utilisateur
 RUN useradd -ms /bin/bash fuentesr && \
     mkdir -p /home/fuentesr/mondes && \
-    chown -R fuentesr:fuentesr /home/fuentesr
+    chown -R fuentesr:fuentesr /home/fuentesr && \
+    usermod -aG docker fuentesr
 
 USER fuentesr
 WORKDIR /home/fuentesr
@@ -30,6 +24,8 @@ WORKDIR /home/fuentesr
 COPY --chown=fuentesr:fuentesr ./backend/pom.xml .
 COPY --chown=fuentesr:fuentesr ./backend/src ./src
 COPY --chown=fuentesr:fuentesr ./backend/mondes/Templates/TemplateSimpleMC ./mondes/Templates/TemplateSimpleMC
+COPY --chown=fuentesr:fuentesr ./backend/mondes/Dockerfile ./mondes/Dockerfile
+COPY --chown=fuentesr:fuentesr ./backend/mondes/entrypoint.sh ./mondes/entrypoint.sh
 
 # Compilation du projet unique (Génère le JAR dans target/)
 RUN mvn clean package -DskipTests
