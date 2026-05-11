@@ -5,18 +5,17 @@ services:
     image: mysql/mysql-server:8.0
     container_name: mysql
     networks:
-      - asgard
+      - minehost-network
     ports:
       - "3308:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=emf123
-      - MYSQL_ROOT_HOST=%
-      - MYSQL_DATABASE=db_gestion_minecraft
+      - MYSQL_DB_USERNAME=${MYSQL_DB_USERNAME}
+      - MYSQL_DB_PASSWORD=${MYSQL_DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     # Ajout du Healthcheck pour vérifier que MySQL est prêt
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pemf123"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", '${MYSQL_DB_USERNAME}', '-p${MYSQL_DB_PASSWORD}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,21 +27,24 @@ services:
       context: .
       dockerfile: ./backend/Dockerfile
     container_name: minehost
-    # Modification du depends_on pour attendre la santé du service
+    env_file:
+      - .env
     depends_on:
       mysql:
         condition: service_healthy
     networks:
-      - asgard
+      - minehost-network
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=jdbc:mysql://mysql:3306/db_gestion_minecraft
+      - DATABASE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      - NGROK_TOKEN=${NGROK_TOKEN}
+      - DEBIAN_FRONTEND=noninteractive
     volumes:
       - ./mondes:/home/fuentesr/mondes
 
 networks:
-  asgard:
+  minehost-network:
     driver: bridge
 
 volumes:

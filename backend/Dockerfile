@@ -1,11 +1,6 @@
 # Image de base
 FROM ubuntu:22.04
 
-# Configuration de l'environnement
-ENV DEBIAN_FRONTEND=noninteractive \
-    NGROK_TOKEN=2vDdGqzFSPpojuMFbyP3cPswqJK_4s9VjoAHXFGt3AZNXCsXT
-ENV DATABASE_URL=jdbc:mysql://mysql:3306/db_gestion_minecraft
-
 # Installation des dépendances (Java 21 et Maven)
 RUN apt-get update && \
     apt-get install -y \
@@ -32,9 +27,9 @@ USER fuentesr
 WORKDIR /home/fuentesr
 
 # Copie des sources
-COPY --chown=fuentesr:fuentesr backend/pom.xml .
-COPY --chown=fuentesr:fuentesr backend/src ./src
-COPY --chown=fuentesr:fuentesr backend/mondes/Templates/TemplateSimpleMC ./mondes/Templates/TemplateSimpleMC
+COPY --chown=fuentesr:fuentesr ./backend/pom.xml .
+COPY --chown=fuentesr:fuentesr ./backend/src ./src
+COPY --chown=fuentesr:fuentesr ./backend/mondes/Templates/TemplateSimpleMC ./mondes/Templates/TemplateSimpleMC
 
 # Compilation du projet unique (Génère le JAR dans target/)
 RUN mvn clean package -DskipTests
