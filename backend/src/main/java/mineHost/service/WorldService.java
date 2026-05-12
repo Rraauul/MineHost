@@ -1,6 +1,7 @@
 package mineHost.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -29,12 +30,17 @@ public class WorldService {
 
     private final WorldRepository worldRepository;
 
-    private final String basePath = "/home/fuentesr/mondes/";
+    private final DockerService dockerService;
+
+    @Value("${app.worlds.host-base-path}")
+    private String basePath;
 
     @Autowired
-    public WorldService(WorldRepository worldRepository, ServerRepository serverRepository) {
+    public WorldService(WorldRepository worldRepository, ServerRepository serverRepository,
+            DockerService dockerService) {
         this.worldRepository = worldRepository;
         this.serverRepository = serverRepository;
+        this.dockerService = dockerService;
     }
 
     @Transactional
@@ -117,91 +123,167 @@ public class WorldService {
 
         return ResponseEntity.status(HttpStatus.CREATED).build(); // 201 - Monde créé
     }
-        @Transactional
-    public ResponseEntity<World> startWorldTT(Integer worldId) {
-        Optional<World> worldOptional = worldRepository.findById(worldId);
-        if (worldOptional.isPresent()) {
-            World world = worldOptional.get();
-            File worldDir = new File(basePath + "user_" + world.getFkUser() + "/" + world.getName());
-            if (worldDir.exists()) {
-                int port = (int) world.getLocalPort();
 
-                // Vérifier si le port est déjà utilisé
-                if (isPortInUse(port)) {
-                    // Générer un nouveau port
-                    int newPort = findAvailablePort();
-                    world.setLocalPort(newPort);
-
-                    // Mettre à jour le fichier server.properties avec le nouveau port
-                    File serverPropertiesFile = new File(worldDir, "server.properties");
-                    if (serverPropertiesFile.exists()) {
-                        try {
-                            String content = Files.readString(serverPropertiesFile.toPath());
-                            content = content.replaceAll("server-port=\\d+", "server-port=" + newPort);
-                            content = content.replaceAll("query.port=\\d+", "query.port=" + newPort);
-                            content = content.replaceAll("rcon.port=\\d+", "rcon.port=" + newPort + 1);
-
-                            Files.writeString(serverPropertiesFile.toPath(), content);
-                        } catch (IOException e) {
-                            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-                        }
-                    }
-
-                    // Sauvegarder le nouveau port dans la base de données
-                    worldRepository.save(world);
-                }
-
-                try {
-                    // Set executable permissions for the script
-                    File scriptFile = new File(worldDir, world.getName() + ".sh");
-                    ProcessBuilder chmodProcessBuilder = new ProcessBuilder("chmod", "+x",
-                            scriptFile.getAbsolutePath());
-                    chmodProcessBuilder.start();
-                    // Start the world using screen
-                    ProcessBuilder processBuilder = new ProcessBuilder("screen", "-dmS", "world_" + worldId + "sh",
-                            "bash", scriptFile.getAbsolutePath());
-                    processBuilder.directory(worldDir);
-                    processBuilder.start();
-
-                    File ngrokFile = new File(worldDir, "ngrok");
-                    ProcessBuilder chmodProcessNgrok = new ProcessBuilder("chmod", "+x",
-                            ngrokFile.getAbsolutePath());
-                    chmodProcessNgrok.start();
-                    // Start ngrok using screen
-                    ProcessBuilder processNgrok = new ProcessBuilder("screen", "-dmS", "world_" + worldId + "ng",
-                            "bash", "-c", "./ngrok tcp " + world.getLocalPort() + " --log=stdout > ngrok.log 2>&1");
-
-                    processNgrok.directory(worldDir);
-                    processNgrok.start();
-                    Thread.sleep(3000);
-
-                    // Lire le fichier de log
-                    Path logPath = Paths.get(worldDir.getAbsolutePath(), "ngrok.log");
-                    List<String> lines = Files.readAllLines(logPath);
-
-                    // Trouver la ligne contenant l'URL
-                    for (String line : lines) {
-                        if (line.contains("started tunnel")) {
-                            String url = line.split("url=tcp://")[1].split(" ")[0];
-                            world.setAddressNgrok(url);
-                            break;
-                        }
-                    }
-
-                    world.setStatus("Running");
-                    worldRepository.save(world);
-                    return ResponseEntity.status(HttpStatus.ACCEPTED).build(); // 202 - Monde démarré
-                } catch (IOException | InterruptedException e) {
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 - Erreur interne
-                                                                                            // starting the world
-                }
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 - Répertoire du monde non trouvé
-            }
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 - Monde non trouvé
+    /**
+     * Force server.properties à utiliser le port "canonique" 25565 *à l'intérieur*
+     * du container monde. Le mapping vers le port hôte (visible des joueurs) est
+     * géré par Docker (cf. DockerService.startWorldContainer).
+     *
+     * Bug historique corrigé : l'ancienne version faisait
+     *   "rcon.port=" + newPort + 1
+     * qui en Java fait une CONCATÉNATION de strings ("25565" + "1" = "255651"),
+     * pas une addition. On force désormais 25575 (valeur par défaut MC).
+     */
+    private void normalizeServerPropertiesForContainer(File worldDir) {
+        File serverPropertiesFile = new File(worldDir, "server.properties");
+        if (!serverPropertiesFile.exists())
+            return;
+        try {
+            String content = Files.readString(serverPropertiesFile.toPath());
+            content = content.replaceAll("server-port=\\d+", "server-port=25565");
+            content = content.replaceAll("query\\.port=\\d+", "query.port=25565");
+            content = content.replaceAll("rcon\\.port=\\d+", "rcon.port=25575");
+            Files.writeString(serverPropertiesFile.toPath(), content);
+        } catch (IOException e) {
+            throw new RuntimeException("Erreur écriture server.properties", e);
         }
     }
+
+    /**
+     * Décide quel script lancer DANS le container monde.
+     * Priorité :
+     *   1. {worldName}.sh (résultat du renommage de start.sh dans createWorld)
+     *      — utile si tu veux garder le bootstrap ServerPackCreator un jour,
+     *   2. run.sh (lanceur "simple" Forge — préféré : non interactif, démarre
+     *      `java @user_jvm_args.txt @libraries/.../unix_args.txt nogui`).
+     *
+     * L'entrypoint du container honore la variable d'environnement WORLD_SCRIPT
+     * en priorité, et tombe sur run.sh sinon. Ici on transmet `run.sh` parce
+     * que c'est ce qui marche le mieux en container (pas de pause clavier, pas
+     * de tentative d'installer Java au runtime).
+     */
+    private String pickWorldScript(File worldDir, String worldName) {
+        File runSh = new File(worldDir, "run.sh");
+        if (runSh.exists()) return "run.sh";
+        File named = new File(worldDir, worldName + ".sh");
+        if (named.exists()) return worldName + ".sh";
+        return null; // l'entrypoint listera et échouera proprement
+    }
+
+    @Transactional
+    public ResponseEntity<World> startWorldTT(Integer worldId) {
+        Optional<World> worldOptional = worldRepository.findById(worldId);
+        if (worldOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        World world = worldOptional.get();
+        File worldDir = new File(basePath + "user_" + world.getFkUser() + "/" + world.getName());
+        if (!worldDir.exists()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
+        // 1) Allocation de port HÔTE via l'API Docker.
+        //    On préfère réutiliser world.localPort s'il est encore libre, sinon
+        //    on en trouve un autre dans la plage [25565, 25700].
+        //    NB: l'ancien isPortInUse() ne marchait pas pour des ports bindés
+        //    par d'AUTRES containers sur l'hôte (il testait depuis le namespace
+        //    réseau du backend, qui n'a pas connaissance des ports hôte).
+        int hostPort;
+        try {
+            hostPort = dockerService.findFreeHostPort((int) world.getLocalPort());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+        world.setLocalPort(hostPort);
+
+        // 2) On force server.properties à 25565 (port canonique DANS le container).
+        //    Docker mappe ensuite 25565 (container) → hostPort (hôte).
+        try {
+            normalizeServerPropertiesForContainer(worldDir);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+        // 3) Choix du script de démarrage à exécuter dans le container.
+        String worldScript = pickWorldScript(worldDir, world.getName());
+
+        try {
+            dockerService.startWorldContainer(
+                    world.getId(),
+                    world.getFkUser(),
+                    world.getName(),
+                    worldScript,
+                    world.getRam(),
+                    hostPort);
+
+            world.setStatus("Running");
+            worldRepository.save(world);
+
+            return ResponseEntity.status(HttpStatus.ACCEPTED).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+    }
+
+    /**
+     * Version TT (test techno) de stopWorld : arrête le CONTAINER au lieu des
+     * sessions `screen` (qui n'existent plus pour un monde lancé via TT).
+     */
+    @Transactional
+    public ResponseEntity<World> stopWorldTT(Integer worldId) {
+        Optional<World> worldOptional = worldRepository.findById(worldId);
+        if (worldOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        World world = worldOptional.get();
+        try {
+            dockerService.stopWorldContainer(worldId);
+            // On retire le container pour libérer le nom et le port hôte.
+            dockerService.removeWorldContainer(worldId);
+            world.setStatus("Stopped");
+            worldRepository.save(world);
+            return ResponseEntity.status(HttpStatus.OK).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Version TT de deleteWorld : s'assure que le container est bien arrêté/supprimé
+     * avant de supprimer les fichiers du monde.
+     */
+    @Transactional
+    public ResponseEntity<World> deleteWorldTT(Integer worldId) {
+        Optional<World> worldOptional = worldRepository.findById(worldId);
+        if (worldOptional.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        World world = worldOptional.get();
+
+        // Cleanup du container si présent — pas grave s'il n'existe pas.
+        try {
+            if (dockerService.worldContainerExists(worldId)) {
+                dockerService.stopWorldContainer(worldId);
+                dockerService.removeWorldContainer(worldId);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+
+        File worldDir = new File(basePath + "user_" + world.getFkUser() + "/" + world.getName());
+        if (worldDir.exists()) {
+            try {
+                deleteDirectory(worldDir);
+            } catch (IOException e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+        }
+        worldRepository.deleteById(worldId);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
     @Transactional
     public ResponseEntity<World> startWorld(Integer worldId) {
         Optional<World> worldOptional = worldRepository.findById(worldId);

@@ -23,10 +23,12 @@ services:
       start_period: 30s
 
   minehost:
-    build: 
+    build:
       context: .
       dockerfile: ./backend/Dockerfile
     container_name: minehost
+    # En root pour pouvoir lire /var/run/docker.sock (cf. commentaire dans backend/Dockerfile).
+    user: "0:0"
     env_file:
       - .env
     depends_on:
@@ -34,6 +36,10 @@ services:
         condition: service_healthy
     networks:
       - minehost-network
+    # IMPORTANT : on ne réserve PLUS la plage 25565-25600 sur l'hôte ici.
+    # Chaque container "monde" créé par DockerService publie son propre port hôte
+    # (via Docker API), donc cette plage doit rester DISPONIBLE sur l'hôte.
+    # Seul le port REST 8080 est exposé pour le backend.
     ports:
       - "8080:8080"
     environment:
@@ -43,8 +49,18 @@ services:
 
       NGROK_TOKEN: ${NGROK_TOKEN}
       DEBIAN_FRONTEND: noninteractive
+      # Chemin des mondes vu côté HÔTE — c'est cette valeur que le backend envoie
+      # au daemon Docker quand il crée les bind-mounts des containers "monde".
+      # On le rend identique au chemin vu côté backend (mount 1:1 ci-dessous),
+      # ce qui simplifie énormément WorldService (un seul "basePath").
+      APP_WORLDS_HOST_BASE_PATH: ${WORLDS_HOST_PATH}
     volumes:
-      - ./mondes:/home/fuentesr/mondes
+      # Mount 1:1 : /home/fuentesr/mondes/ sur l'hôte ↔ même chemin dans le container.
+      # Ainsi, quand le backend écrit /home/fuentesr/mondes/user_1/myworld, ce chemin
+      # existe au même endroit sur l'hôte, donc le daemon Docker peut le bind-mounter
+      # dans le container "monde".
+      - ${WORLDS_HOST_PATH}:${WORLDS_HOST_PATH}
+      # Socket Docker : permet au backend (via docker-java) de créer les containers monde.
       - /var/run/docker.sock:/var/run/docker.sock
 
 networks:

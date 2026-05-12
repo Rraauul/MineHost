@@ -1,55 +1,35 @@
 #!/bin/bash
-
-# Script d'entrée pour le container Docker du serveur Minecraft
-# Ce script démarre le serveur et ngrok
+# Entrypoint du container "monde Minecraft".
+# Stratégie :
+#   1. On se place dans /world (monté depuis l'hôte).
+#   2. On exécute, dans l'ordre de préférence :
+#        a) le script nommé via la variable d'environnement WORLD_SCRIPT (transmise
+#           par le backend Spring depuis DockerService),
+#        b) à défaut, run.sh (lanceur "simple" généré par ServerPackCreator
+#           pour Forge : il appelle directement `java @user_jvm_args.txt
+#           @libraries/.../unix_args.txt nogui`),
+#        c) à défaut, on échoue clairement.
+# On évite délibérément `start.sh` qui est interactif (read clavier, install
+# de Java, etc.) et fait planter le container quand il n'y a pas de TTY.
 
 set -e
+cd /world
 
-WORLD_NAME="${WORLD_NAME:-world}"
-SERVER_PORT="${SERVER_PORT:-25565}"
-NGROK_TOKEN="${NGROK_TOKEN:-}"
+run_script() {
+    local script="$1"
+    echo "[entrypoint] Lancement de ${script}"
+    chmod +x "${script}"
+    exec bash "${script}" nogui
+}
 
-echo "Démarrage du serveur Minecraft: $WORLD_NAME"
-echo "Port: $SERVER_PORT"
-
-# Véifier si le script de démarrage existe
-if [ ! -f "/world/$WORLD_NAME.sh" ]; then
-    echo "Erreur: Le script de démarrage /world/$WORLD_NAME.sh n'existe pas"
-    exit 1
+if [ -n "${WORLD_SCRIPT}" ] && [ -f "${WORLD_SCRIPT}" ]; then
+    run_script "${WORLD_SCRIPT}"
 fi
 
-# Rendre le script exécutable
-chmod +x "/world/$WORLD_NAME.sh"
-
-# Démarrer le serveur Minecraft en arrière-plan
-echo "Lancement du serveur Minecraft..."
-bash "/world/$WORLD_NAME.sh" &
-SERVER_PID=$!
-
-# Attendre que le serveur soit prêt
-sleep 5
-
-# Démarrer ngrok si un token est disponible
-if [ -n "$NGROK_TOKEN" ]; then
-    echo "Démarrage de ngrok avec le token fourni..."
-    ngrok config add-authtoken "$NGROK_TOKEN"
-    
-    # Démarrer ngrok
-    ngrok tcp $SERVER_PORT --log=stdout > /world/ngrok.log 2>&1 &
-    NGROK_PID=$!
-    
-    # Attendre que ngrok soit prêt et récupérer l'URL
-    sleep 3
-    
-    # Chercher l'URL d'exposition
-    if [ -f "/world/ngrok.log" ]; then
-        NGROK_URL=$(grep -oP "(?<=url=tcp://).+?(?= )" /world/ngrok.log | head -1)
-        if [ -n "$NGROK_URL" ]; then
-            echo "Serveur disponible à: tcp://$NGROK_URL"
-            echo "tcp://$NGROK_URL" > /world/ngrok_url.txt
-        fi
-    fi
+if [ -f "run.sh" ]; then
+    run_script "run.sh"
 fi
 
-# Garder le container actif
-wait $SERVER_PID
+echo "[entrypoint] Aucun script de démarrage trouvé (ni \$WORLD_SCRIPT='${WORLD_SCRIPT}' ni run.sh)." >&2
+ls -la /world >&2
+exit 1

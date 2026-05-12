@@ -31,6 +31,7 @@ import mineHost.dto.WorldDTO;
 import mineHost.model.Abonnement;
 import mineHost.model.World;
 import mineHost.service.AbonnementService;
+import mineHost.service.DockerService;
 import mineHost.service.ServerService;
 import mineHost.service.UtilisateurService;
 import mineHost.service.WorldService;
@@ -43,30 +44,33 @@ public class Controller {
     private final UtilisateurService utilisateurService;
     private final AbonnementService abonnementService;
     private final ServerService serverService;
+    private final DockerService dockerService;
 
     @Autowired
     public Controller(WorldService worldService, UtilisateurService utilisateurService,
-            AbonnementService abonnementService, ServerService serverService) {
+            AbonnementService abonnementService, ServerService serverService, DockerService dockerService) {
         this.worldService = worldService;
         this.utilisateurService = utilisateurService;
         this.abonnementService = abonnementService;
         this.serverService = serverService;
+        this.dockerService = dockerService;
     }
-        @PostMapping("/login")
+
+    @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(HttpSession session,
             @RequestBody LoginRequestDTO loginRequest) {
         boolean loginSuccess = utilisateurService.login(loginRequest.getName(), loginRequest.getMotDePasse());
         Map<String, String> response = new HashMap<>();
-        
+
         if (loginSuccess) {
             session.setAttribute("user", loginRequest.getName());
-            
+
             // Récupérer l'ID utilisateur
             ResponseEntity<UserDTO> userResponse = utilisateurService.getUserByUsername(loginRequest.getName());
             if (userResponse.getStatusCode().is2xxSuccessful() && userResponse.getBody() != null) {
                 session.setAttribute("pkUser", userResponse.getBody().getId());
             }
-            
+
             response.put("message", "Connexion réussie");
             return ResponseEntity.status(HttpStatus.OK).body(response);
         } else {
@@ -105,7 +109,7 @@ public class Controller {
         // Retourner une réponse positive
         return ResponseEntity.ok("Déconnexion réussie");
     }
-    
+
     @PostMapping("/createWorld")
     public ResponseEntity<?> createWorld(HttpSession session,
             @RequestParam String name,
@@ -114,13 +118,13 @@ public class Controller {
             @RequestParam Integer serverId) {
         if (session.getAttribute("user") != null) {
             String username = (String) session.getAttribute("user");
-            
+
             // Récupérer l'ID utilisateur
             ResponseEntity<UserDTO> userResponse = utilisateurService.getUserByUsername(username);
             if (!userResponse.getStatusCode().is2xxSuccessful() || userResponse.getBody() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur introuvable");
             }
-            
+
             Integer userId = userResponse.getBody().getId();
             return worldService.createWorld(name, template, ram, userId, serverId);
         }
@@ -131,16 +135,16 @@ public class Controller {
     public ResponseEntity<?> startWorld(HttpSession session, @RequestParam Integer worldId) {
         if (session.getAttribute("user") != null) {
             String username = (String) session.getAttribute("user");
-            
+
             // Récupérer l'ID utilisateur
             ResponseEntity<UserDTO> userResponse = utilisateurService.getUserByUsername(username);
             if (!userResponse.getStatusCode().is2xxSuccessful() || userResponse.getBody() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur introuvable");
             }
-            
+
             Integer userId = userResponse.getBody().getId();
             List<WorldDTO> worldList = worldService.getWorldsByUserId(userId);
-            
+
             // Vérifier si le monde appartient à l'utilisateur
             boolean isOwner = worldList.stream().anyMatch(w -> w.getId().equals(worldId));
             if (isOwner) {
@@ -151,24 +155,50 @@ public class Controller {
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur non connecté");
     }
+
+    @PostMapping("/createWorldWithoutSession")
+    public ResponseEntity<?> createWorld(@RequestParam String name,
+            @RequestParam String template,
+            @RequestParam Integer ram,
+            @RequestParam Integer serverId) {
+        // Note: This method does not use the session attribute
+        // You might want to add authentication logic here if needed
+        return worldService.createWorld(name, template, ram, null, serverId);
+    }
+
     @PostMapping("/startWorldWithoutSession")
     public ResponseEntity<?> startWorld(@RequestParam Integer worldId) {
         // Note: This method does not use the session attribute
         // You might want to add authentication logic here if needed
         return worldService.startWorldTT(worldId);
     }
-    
+
+    // ---- Endpoints "TT" (test techno : un container Docker par monde) -------
+    // Ils existent en parallèle des endpoints classiques (qui utilisent encore
+    // screen + ngrok). Quand le TT sera validé, on pourra basculer /stopWorld
+    // et /deleteWorld dessus.
+
+    @PostMapping("/stopWorldWithoutSession")
+    public ResponseEntity<?> stopWorldTT(@RequestParam Integer worldId) {
+        return worldService.stopWorldTT(worldId);
+    }
+
+    @DeleteMapping("/deleteWorldWithoutSession")
+    public ResponseEntity<?> deleteWorldTT(@RequestParam Integer worldId) {
+        return worldService.deleteWorldTT(worldId);
+    }
+
     @GetMapping("/getWorldsByUserId")
     public ResponseEntity<?> getWorldsByUser(HttpSession session) {
         if (session.getAttribute("user") != null) {
             String username = (String) session.getAttribute("user");
-            
+
             // Récupérer l'ID utilisateur
             ResponseEntity<UserDTO> userResponse = utilisateurService.getUserByUsername(username);
             if (!userResponse.getStatusCode().is2xxSuccessful() || userResponse.getBody() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur introuvable");
             }
-            
+
             Integer userId = userResponse.getBody().getId();
             List<WorldDTO> worlds = worldService.getWorldsByUserId(userId);
             return ResponseEntity.ok(worlds);
@@ -180,16 +210,16 @@ public class Controller {
     public ResponseEntity<?> stopWorld(HttpSession session, @RequestParam Integer worldId) {
         if (session.getAttribute("user") != null) {
             String username = (String) session.getAttribute("user");
-            
+
             // Récupérer l'ID utilisateur
             ResponseEntity<UserDTO> userResponse = utilisateurService.getUserByUsername(username);
             if (!userResponse.getStatusCode().is2xxSuccessful() || userResponse.getBody() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur introuvable");
             }
-            
+
             Integer userId = userResponse.getBody().getId();
             List<WorldDTO> worldList = worldService.getWorldsByUserId(userId);
-            
+
             // Vérifier si le monde appartient à l'utilisateur
             boolean isOwner = worldList.stream().anyMatch(w -> w.getId().equals(worldId));
             if (isOwner) {
@@ -205,16 +235,16 @@ public class Controller {
     public ResponseEntity<?> deleteWorld(HttpSession session, @RequestParam Integer worldId) {
         if (session.getAttribute("user") != null) {
             String username = (String) session.getAttribute("user");
-            
+
             // Récupérer l'ID utilisateur
             ResponseEntity<UserDTO> userResponse = utilisateurService.getUserByUsername(username);
             if (!userResponse.getStatusCode().is2xxSuccessful() || userResponse.getBody() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur introuvable");
             }
-            
+
             Integer userId = userResponse.getBody().getId();
             List<WorldDTO> worldList = worldService.getWorldsByUserId(userId);
-            
+
             // Vérifier si le monde appartient à l'utilisateur
             boolean isOwner = worldList.stream().anyMatch(w -> w.getId().equals(worldId));
             if (isOwner) {
@@ -230,16 +260,16 @@ public class Controller {
     public ResponseEntity<?> getInfoWorld(HttpSession session, @RequestParam Integer worldId) {
         if (session.getAttribute("user") != null) {
             String username = (String) session.getAttribute("user");
-            
+
             // Récupérer l'ID utilisateur
             ResponseEntity<UserDTO> userResponse = utilisateurService.getUserByUsername(username);
             if (!userResponse.getStatusCode().is2xxSuccessful() || userResponse.getBody() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Utilisateur introuvable");
             }
-            
+
             Integer userId = userResponse.getBody().getId();
             List<WorldDTO> worldList = worldService.getWorldsByUserId(userId);
-            
+
             // Vérifier si le monde appartient à l'utilisateur
             boolean isOwner = worldList.stream().anyMatch(w -> w.getId().equals(worldId));
             if (isOwner) {
@@ -259,16 +289,16 @@ public class Controller {
     public ResponseEntity<Resource> downloadLog(HttpSession session, @RequestParam Integer worldId) {
         if (session.getAttribute("user") != null) {
             String username = (String) session.getAttribute("user");
-            
+
             // Récupérer l'ID utilisateur
             ResponseEntity<UserDTO> userResponse = utilisateurService.getUserByUsername(username);
             if (!userResponse.getStatusCode().is2xxSuccessful() || userResponse.getBody() == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            
+
             Integer userId = userResponse.getBody().getId();
             List<WorldDTO> worldList = worldService.getWorldsByUserId(userId);
-            
+
             // Vérifier si le monde appartient à l'utilisateur
             boolean isOwner = worldList.stream().anyMatch(w -> w.getId().equals(worldId));
             if (isOwner) {
@@ -276,7 +306,7 @@ public class Controller {
                 if (logFile == null || !logFile.exists()) {
                     return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
                 }
-                
+
                 Resource fileResource = new FileSystemResource(logFile);
                 return ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + logFile.getName())
@@ -289,7 +319,7 @@ public class Controller {
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
-    
+
     @GetMapping("/infoServer")
     public ResponseEntity<?> getServerInfo(@RequestParam Integer serverId) {
         ServerDTO serverInfo = serverService.getServerdInfo(serverId);
@@ -298,7 +328,7 @@ public class Controller {
         }
         return ResponseEntity.ok(serverInfo);
     }
-    
+
     @GetMapping("/getTemplates")
     public ResponseEntity<?> getTemplates() {
         List<String> templates = worldService.getTemplates();
@@ -318,13 +348,13 @@ public class Controller {
     public ResponseEntity<?> getOfferByClient(HttpSession session) {
         if (session.getAttribute("user") != null) {
             String username = (String) session.getAttribute("user");
-            
+
             // Récupérer l'ID utilisateur
             ResponseEntity<UserDTO> userResponse = utilisateurService.getUserByUsername(username);
             if (!userResponse.getStatusCode().is2xxSuccessful() || userResponse.getBody() == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Utilisateur non trouvé");
             }
-            
+
             Integer pkUser = userResponse.getBody().getId();
             return utilisateurService.getOffre(pkUser);
         } else {
@@ -385,5 +415,5 @@ public class Controller {
     public ResponseEntity<?> getUserByUsername(@RequestParam String username) {
         return utilisateurService.getUserByUsername(username);
     }
-     
+
 }

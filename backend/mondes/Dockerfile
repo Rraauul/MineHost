@@ -1,41 +1,26 @@
-# Dockerfile pour exécuter un serveur Minecraft
-# Ce dockerfile sera utilisé pour créer des images pour chaque monde
+# Image utilisée pour CHAQUE monde Minecraft (un container par monde).
+# Construite UNE FOIS au démarrage du backend par DockerService.ensureWorldImage(),
+# puis instanciée à chaque startWorld.
+#
+# Java 17 : c'est la version recommandée par les variables.txt du template
+# (RECOMMENDED_JAVA_VERSION=17 pour Minecraft 1.20.1 + Forge 47.4.0).
+FROM eclipse-temurin:17-jre
 
-FROM ubuntu:22.04
-
-# Installation des dépendances
+# Paquets minimaux : bash pour run.sh, curl/unzip pour les scripts qui pourraient
+# vouloir télécharger des libs au runtime, procps pour debug.
 RUN apt-get update && \
-    apt-get install -y \
-    openjdk-21-jdk \
-    curl \
-    bash && \
-    # Installation de ngrok
-    curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc | \
-    tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null && \
-    echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | \
-    tee /etc/apt/sources.list.d/ngrok.list && \
-    apt-get update && \
-    apt-get install -y ngrok && \
+    apt-get install -y --no-install-recommends bash curl unzip procps ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Création de l'utilisateur et du répertoire
-RUN useradd -ms /bin/bash minecraft && \
-    mkdir -p /world && \
-    chown -R minecraft:minecraft /world
-
-USER minecraft
+# /world est monté au runtime depuis l'hôte (le dossier du monde de l'utilisateur).
 WORKDIR /world
 
-# Exposition des ports (ajustables à la création du container)
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Port "canonique" Minecraft DANS le container. Docker se charge de le remapper
+# vers un port hôte choisi par DockerService.
 EXPOSE 25565
 
-# Script de démarrage
-COPY --chown=minecraft:minecraft entrypoint.sh /world/entrypoint.sh
-RUN chmod +x /world/entrypoint.sh
-
-# Point de montage pour le monde
-VOLUME ["/world"]
-
-# Démarrage du serveur et ngrok
-ENTRYPOINT ["/world/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

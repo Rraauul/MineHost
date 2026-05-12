@@ -1,7 +1,8 @@
 # Image de base
 FROM ubuntu:22.04
 
-# Installation des dépendances (Java 21, Maven et Docker CLI)
+# Installation des dépendances (Java 21 pour le backend Spring, Maven, et le CLI Docker
+# qui sert au backend pour parler à /var/run/docker.sock monté depuis l'hôte).
 RUN apt-get update && \
     apt-get install -y \
     openjdk-21-jdk \
@@ -11,31 +12,45 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Configuration de l'utilisateur
+# NB: on garde l'utilisateur "fuentesr" pour la cohérence des paths (/home/fuentesr/mondes)
+# mais on EXÉCUTE le backend en root. Raison : /var/run/docker.sock est exposé par
+# l'hôte avec un GID "docker" qui n'a pas le même numéro à l'intérieur du container.
+# Tant qu'on n'a pas de mécanisme dynamique pour aligner le GID (group_add côté compose
+# ou entrypoint qui re-chown le socket), tourner en root est le plus simple. C'est OK
+# pour une phase TT (test techno) — à durcir avant la prod.
 RUN useradd -ms /bin/bash fuentesr && \
     mkdir -p /home/fuentesr/mondes && \
-    chown -R fuentesr:fuentesr /home/fuentesr && \
-    usermod -aG docker fuentesr
+    chown -R fuentesr:fuentesr /home/fuentesr
 
-USER fuentesr
 WORKDIR /home/fuentesr
 
-# Copie des sources
+# Copie des sources du backend
 COPY --chown=fuentesr:fuentesr ./backend/pom.xml .
 COPY --chown=fuentesr:fuentesr ./backend/src ./src
-COPY --chown=fuentesr:fuentesr ./backend/mondes/Templates/TemplateSimpleMC ./mondes/Templates/TemplateSimpleMC
-COPY --chown=fuentesr:fuentesr ./backend/mondes/Dockerfile ./mondes/Dockerfile
-COPY --chown=fuentesr:fuentesr ./backend/mondes/entrypoint.sh ./mondes/entrypoint.sh
 
-# Compilation du projet unique (Génère le JAR dans target/)
+# Templates "source" : conservés hors de /home/fuentesr/mondes (qui est recouvert
+# par le volume hôte au runtime). DockerService / WorldService peuvent les utiliser
+# pour amorcer le dossier hôte si besoin.
+COPY --chown=fuentesr:fuentesr ./backend/mondes/Templates /opt/minehost/templates-source
+
+# Contexte de build de l'image "monde" : copié dans /opt (PAS recouvert par le mount
+# hôte), ce qui permet à DockerService.ensureWorldImage() de builder l'image
+# `minehost/world:latest` au démarrage du backend en envoyant ce dossier comme
+# contexte au daemon Docker.
+COPY ./backend/mondes/Dockerfile     /opt/minehost/world-image/Dockerfile
+COPY ./backend/mondes/entrypoint.sh  /opt/minehost/world-image/entrypoint.sh
+
+# Compilation du JAR
 RUN mvn clean package -DskipTests
 
-# Exposition du port (8080 pour la Gateway combinée)
+# Port REST du backend Spring
 EXPOSE 8080
 
-# Point de montage pour les mondes Minecraft
+# Les ports des MONDES ne sont PLUS exposés ici : chaque monde tourne dans son propre
+# container et publie son propre port hôte (cf. DockerService.startWorldContainer).
+
+# Point de montage pour les mondes Minecraft (mappé 1:1 avec l'hôte par docker-compose).
 VOLUME ["/home/fuentesr/mondes"]
 
-# COMMANDE DE DÉMARRAGE CORRIGÉE
-# Utilisez une étoile (*) pour éviter les erreurs de nom de fichier versionné
+# Démarrage
 CMD ["sh", "-c", "java -jar target/*.jar"]

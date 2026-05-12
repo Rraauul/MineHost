@@ -1,0 +1,126 @@
+Structure du dossier pour le volume OSDisk
+Le num�ro de s�rie du volume est 7271-8717
+C:.
+|   .env
+|   .env.example
+|   .gitignore
+|   docker-compose.yml
+|   log.txt
+|   README.md
+|   
++---.github
+|   \---java-upgrade
+|       |   .gitignore
+|       |   
+|       \---hooks
+|           \---scripts
+|                   recordToolUse.ps1
+|                   recordToolUse.sh
+|                   
++---.vscode
+|       settings.json
+|       
+\---backend
+    |   Dockerfile
+    |   mvnw
+    |   mvnw.cmd
+    |   pom.xml
+    |   readme.md
+    |   
+    +---.mvn
+    |   \---wrapper
+    |           maven-wrapper.jar
+    |           maven-wrapper.properties
+    |           
+    +---mondes
+    |   |   Dockerfile
+    |   |   entrypoint.sh
+    |   |   
+    |   \---Templates
+    |       \---TemplateSimpleMC
+    |           |   banned-ips.json
+    |           |   banned-players.json
+    |           |   eula.txt
+    |           ETC
+    |                   
+    +---src
+    |   \---main
+    |       +---java
+    |       |   \---mineHost
+    |       |       |   Main.java
+    |       |       |   
+    |       |       +---controller
+    |       |       |       Controller.java
+    |       |       |       
+    |       |       +---dto
+    |       |       |       AbonnementDTO.java
+    |       |       |       LoginRequestDTO.java
+    |       |       |       ServerDTO.java
+    |       |       |       UserDTO.java
+    |       |       |       WorldDTO.java
+    |       |       |       
+    |       |       +---model
+    |       |       |       Abonnement.java
+    |       |       |       DockerConfig.java
+    |       |       |       Server.java
+    |       |       |       Utilisateur.java
+    |       |       |       World.java
+    |       |       |       
+    |       |       +---repository
+    |       |       |       AbonnementRepository.java
+    |       |       |       ServerRepository.java
+    |       |       |       UtilisateurRepository.java
+    |       |       |       WorldRepository.java
+    |       |       |       
+    |       |       \---service
+    |       |               AbonnementService.java
+    |       |               DockerService.java
+    |       |               ServerService.java
+    |       |               UtilisateurService.java
+    |       |               WorldService.java
+    |       |               
+    |       \---resources
+    |               application.properties
+    |               
+    \---target
+        +---classes
+        |   |   application.properties
+        |   |   
+        |   \---mineHost
+        |       |   Main.class
+        |       |   
+        |       +---controller
+        |       |       Controller.class
+        |       |       
+        |       +---dto
+        |       |       AbonnementDTO.class
+        |       |       LoginRequestDTO.class
+        |       |       ServerDTO.class
+        |       |       UserDTO.class
+        |       |       WorldDTO.class
+        |       |       
+        |       +---model
+        |       |       Abonnement.class
+        |       |       DockerConfig.class
+        |       |       Server.class
+        |       |       Utilisateur.class
+        |       |       World.class
+        |       |       
+        |       +---repository
+        |       |       AbonnementRepository.class
+        |       |       ServerRepository.class
+        |       |       UtilisateurRepository.class
+        |       |       WorldRepository.class
+        |       |       
+        |       \---service
+        |               AbonnementService.class
+        |               DockerService.class
+        |               ServerService.class
+        |               UtilisateurService.class
+        |               WorldService.class
+        |               
+        +---generated-sources
+        |   \---annotations
+        +---generated-test-sources
+        |   \---test-annotations
+        \---test-classes
