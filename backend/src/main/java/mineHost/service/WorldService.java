@@ -1,5 +1,3 @@
-
-
 package mineHost.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +21,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
-import com.github.dockerjava.api.exception.DockerException;
 
 @Service
 public class WorldService {
@@ -31,16 +28,13 @@ public class WorldService {
     private final ServerRepository serverRepository;
 
     private final WorldRepository worldRepository;
-    
-    private final DockerService dockerService;
 
     private final String basePath = "/home/fuentesr/mondes/";
 
     @Autowired
-    public WorldService(WorldRepository worldRepository, ServerRepository serverRepository, DockerService dockerService) {
+    public WorldService(WorldRepository worldRepository, ServerRepository serverRepository) {
         this.worldRepository = worldRepository;
         this.serverRepository = serverRepository;
-        this.dockerService = dockerService;
     }
 
     @Transactional
@@ -123,7 +117,91 @@ public class WorldService {
 
         return ResponseEntity.status(HttpStatus.CREATED).build(); // 201 - Monde créé
     }
+        @Transactional
+    public ResponseEntity<World> startWorldTT(Integer worldId) {
+        Optional<World> worldOptional = worldRepository.findById(worldId);
+        if (worldOptional.isPresent()) {
+            World world = worldOptional.get();
+            File worldDir = new File(basePath + "user_" + world.getFkUser() + "/" + world.getName());
+            if (worldDir.exists()) {
+                int port = (int) world.getLocalPort();
 
+                // Vérifier si le port est déjà utilisé
+                if (isPortInUse(port)) {
+                    // Générer un nouveau port
+                    int newPort = findAvailablePort();
+                    world.setLocalPort(newPort);
+
+                    // Mettre à jour le fichier server.properties avec le nouveau port
+                    File serverPropertiesFile = new File(worldDir, "server.properties");
+                    if (serverPropertiesFile.exists()) {
+                        try {
+                            String content = Files.readString(serverPropertiesFile.toPath());
+                            content = content.replaceAll("server-port=\\d+", "server-port=" + newPort);
+                            content = content.replaceAll("query.port=\\d+", "query.port=" + newPort);
+                            content = content.replaceAll("rcon.port=\\d+", "rcon.port=" + newPort + 1);
+
+                            Files.writeString(serverPropertiesFile.toPath(), content);
+                        } catch (IOException e) {
+                            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                        }
+                    }
+
+                    // Sauvegarder le nouveau port dans la base de données
+                    worldRepository.save(world);
+                }
+
+                try {
+                    // Set executable permissions for the script
+                    File scriptFile = new File(worldDir, world.getName() + ".sh");
+                    ProcessBuilder chmodProcessBuilder = new ProcessBuilder("chmod", "+x",
+                            scriptFile.getAbsolutePath());
+                    chmodProcessBuilder.start();
+                    // Start the world using screen
+                    ProcessBuilder processBuilder = new ProcessBuilder("screen", "-dmS", "world_" + worldId + "sh",
+                            "bash", scriptFile.getAbsolutePath());
+                    processBuilder.directory(worldDir);
+                    processBuilder.start();
+
+                    File ngrokFile = new File(worldDir, "ngrok");
+                    ProcessBuilder chmodProcessNgrok = new ProcessBuilder("chmod", "+x",
+                            ngrokFile.getAbsolutePath());
+                    chmodProcessNgrok.start();
+                    // Start ngrok using screen
+                    ProcessBuilder processNgrok = new ProcessBuilder("screen", "-dmS", "world_" + worldId + "ng",
+                            "bash", "-c", "./ngrok tcp " + world.getLocalPort() + " --log=stdout > ngrok.log 2>&1");
+
+                    processNgrok.directory(worldDir);
+                    processNgrok.start();
+                    Thread.sleep(3000);
+
+                    // Lire le fichier de log
+                    Path logPath = Paths.get(worldDir.getAbsolutePath(), "ngrok.log");
+                    List<String> lines = Files.readAllLines(logPath);
+
+                    // Trouver la ligne contenant l'URL
+                    for (String line : lines) {
+                        if (line.contains("started tunnel")) {
+                            String url = line.split("url=tcp://")[1].split(" ")[0];
+                            world.setAddressNgrok(url);
+                            break;
+                        }
+                    }
+
+                    world.setStatus("Running");
+                    worldRepository.save(world);
+                    return ResponseEntity.status(HttpStatus.ACCEPTED).build(); // 202 - Monde démarré
+                } catch (IOException | InterruptedException e) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 - Erreur interne
+                                                                                            // starting the world
+                }
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 - Répertoire du monde non trouvé
+            }
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 - Monde non trouvé
+        }
+    }
     @Transactional
     public ResponseEntity<World> startWorld(Integer worldId) {
         Optional<World> worldOptional = worldRepository.findById(worldId);
@@ -138,7 +216,6 @@ public class WorldService {
                     // Générer un nouveau port
                     int newPort = findAvailablePort();
                     world.setLocalPort(newPort);
-                    port = newPort;
 
                     // Mettre à jour le fichier server.properties avec le nouveau port
                     File serverPropertiesFile = new File(worldDir, "server.properties");
@@ -147,7 +224,7 @@ public class WorldService {
                             String content = Files.readString(serverPropertiesFile.toPath());
                             content = content.replaceAll("server-port=\\d+", "server-port=" + newPort);
                             content = content.replaceAll("query.port=\\d+", "query.port=" + newPort);
-                            content = content.replaceAll("rcon.port=\\d+", "rcon.port=" + (newPort + 1));
+                            content = content.replaceAll("rcon.port=\\d+", "rcon.port=" + newPort + 1);
 
                             Files.writeString(serverPropertiesFile.toPath(), content);
                         } catch (IOException e) {
@@ -160,104 +237,48 @@ public class WorldService {
                 }
 
                 try {
-                    // Démarrer le container Docker
-                    String containerId = dockerService.startWorldContainer(
-                            worldId,
-                            world.getName(),
-                            worldDir.getAbsolutePath(),
-                            port
-                    );
+                    // Set executable permissions for the script
+                    File scriptFile = new File(worldDir, world.getName() + ".sh");
+                    ProcessBuilder chmodProcessBuilder = new ProcessBuilder("chmod", "+x",
+                            scriptFile.getAbsolutePath());
+                    chmodProcessBuilder.start();
+                    // Start the world using screen
+                    ProcessBuilder processBuilder = new ProcessBuilder("screen", "-dmS", "world_" + worldId + "sh",
+                            "bash", scriptFile.getAbsolutePath());
+                    processBuilder.directory(worldDir);
+                    processBuilder.start();
 
-                    // Attendre que le serveur soit prêt et récupérer l'URL ngrok
-                    Thread.sleep(5000);
+                    File ngrokFile = new File(worldDir, "ngrok");
+                    ProcessBuilder chmodProcessNgrok = new ProcessBuilder("chmod", "+x",
+                            ngrokFile.getAbsolutePath());
+                    chmodProcessNgrok.start();
+                    // Start ngrok using screen
+                    ProcessBuilder processNgrok = new ProcessBuilder("screen", "-dmS", "world_" + worldId + "ng",
+                            "bash", "-c", "./ngrok tcp " + world.getLocalPort() + " --log=stdout > ngrok.log 2>&1");
 
-                    // Vérifier si ngrok a généré une URL
-                    File ngrokUrlFile = new File(worldDir, "ngrok_url.txt");
-                    if (ngrokUrlFile.exists()) {
-                        try {
-                            String ngrokUrl = Files.readString(ngrokUrlFile.toPath()).trim();
-                            world.setAddressNgrok(ngrokUrl);
-                        } catch (IOException e) {
-                            // Si la lecture échoue, on continue quand même
+                    processNgrok.directory(worldDir);
+                    processNgrok.start();
+                    Thread.sleep(3000);
+
+                    // Lire le fichier de log
+                    Path logPath = Paths.get(worldDir.getAbsolutePath(), "ngrok.log");
+                    List<String> lines = Files.readAllLines(logPath);
+
+                    // Trouver la ligne contenant l'URL
+                    for (String line : lines) {
+                        if (line.contains("started tunnel")) {
+                            String url = line.split("url=tcp://")[1].split(" ")[0];
+                            world.setAddressNgrok(url);
+                            break;
                         }
                     }
 
                     world.setStatus("Running");
                     worldRepository.save(world);
                     return ResponseEntity.status(HttpStatus.ACCEPTED).build(); // 202 - Monde démarré
-                } catch (DockerException | InterruptedException e) {
+                } catch (IOException | InterruptedException e) {
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 - Erreur interne
-                }
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 - Répertoire du monde non trouvé
-            }
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 - Monde non trouvé
-        }
-    }
-    @Transactional
-    public ResponseEntity<World> startWorldTT(Integer worldId) {
-        Optional<World> worldOptional = worldRepository.findById(worldId);
-        if (worldOptional.isPresent()) {
-            World world = worldOptional.get();
-            File worldDir = new File(basePath + "user_" + world.getFkUser() + "/" + world.getName());
-            if (worldDir.exists()) {
-                int port = (int) world.getLocalPort();
-
-                // Vérifier si le port est déjà utilisé
-                if (isPortInUse(port)) {
-                    // Générer un nouveau port
-                    int newPort = findAvailablePort();
-                    world.setLocalPort(newPort);
-                    port = newPort;
-
-                    // Mettre à jour le fichier server.properties avec le nouveau port
-                    File serverPropertiesFile = new File(worldDir, "server.properties");
-                    if (serverPropertiesFile.exists()) {
-                        try {
-                            String content = Files.readString(serverPropertiesFile.toPath());
-                            content = content.replaceAll("server-port=\\d+", "server-port=" + newPort);
-                            content = content.replaceAll("query.port=\\d+", "query.port=" + newPort);
-                            content = content.replaceAll("rcon.port=\\d+", "rcon.port=" + (newPort + 1));
-
-                            Files.writeString(serverPropertiesFile.toPath(), content);
-                        } catch (IOException e) {
-                            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-                        }
-                    }
-
-                    // Sauvegarder le nouveau port dans la base de données
-                    worldRepository.save(world);
-                }
-
-                try {
-                    // Démarrer le container Docker
-                    String containerId = dockerService.startWorldContainer(
-                            worldId,
-                            world.getName(),
-                            worldDir.getAbsolutePath(),
-                            port
-                    );
-
-                    // Attendre que le serveur soit prêt et récupérer l'URL ngrok
-                    Thread.sleep(5000);
-
-                    // Vérifier si ngrok a généré une URL
-                    File ngrokUrlFile = new File(worldDir, "ngrok_url.txt");
-                    if (ngrokUrlFile.exists()) {
-                        try {
-                            String ngrokUrl = Files.readString(ngrokUrlFile.toPath()).trim();
-                            world.setAddressNgrok(ngrokUrl);
-                        } catch (IOException e) {
-                            // Si la lecture échoue, on continue quand même
-                        }
-                    }
-
-                    world.setStatus("Running");
-                    worldRepository.save(world);
-                    return ResponseEntity.status(HttpStatus.ACCEPTED).build(); // 202 - Monde démarré
-                } catch (DockerException | InterruptedException e) {
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 - Erreur interne
+                                                                                            // starting the world
                 }
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // 404 - Répertoire du monde non trouvé
@@ -272,14 +293,23 @@ public class WorldService {
         Optional<World> worldOptional = worldRepository.findById(worldId);
         if (worldOptional.isPresent()) {
             World world = worldOptional.get();
+            String screenNameSh = "world_" + worldId + "sh";
+            String screenNameNg = "world_" + worldId + "ng";
 
             try {
-                dockerService.stopWorldContainer(worldId);
+                new ProcessBuilder("screen", "-S", screenNameSh, "-X", "stuff", "$'\003'").start();
+                Thread.sleep(2000); // Attente courte
+                new ProcessBuilder("screen", "-S", screenNameSh, "-X", "stuff", "$'\003'").start();
+                new ProcessBuilder("screen", "-XS", screenNameSh, "quit").start();
                 world.setStatus("Stopped");
-                world.setAddressNgrok(null); // Réinitialiser l'URL ngrok
+                new ProcessBuilder("screen", "-S", screenNameNg, "-X", "stuff", "$'\003'").start();
+                Thread.sleep(2000); // Attente courte
+                new ProcessBuilder("screen", "-XS", screenNameNg, "quit").start();
+                world.setStatus("Stopped");
                 worldRepository.save(world);
-            } catch (Exception e) {
+            } catch (IOException | InterruptedException e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // 500 - Erreur interne
+                                                                                        // arrêt du monde
             }
 
             return ResponseEntity.status(HttpStatus.OK).build(); // 200 - Monde arrêté

@@ -1,4 +1,4 @@
-name: minehost-project # <--- Définit le nom du projet Compose
+name: minehost-project
 
 services:
   mysql:
@@ -9,13 +9,14 @@ services:
     ports:
       - "3308:3306"
     environment:
-      - MYSQL_DB_USERNAME=${MYSQL_DB_USERNAME}
-      - MYSQL_DB_PASSWORD=${MYSQL_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USERNAME}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
-    # Ajout du Healthcheck pour vérifier que MySQL est prêt
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", '${MYSQL_DB_USERNAME}', '-p${MYSQL_DB_PASSWORD}']
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,7 +24,6 @@ services:
 
   minehost:
     build: 
-
       context: .
       dockerfile: ./backend/Dockerfile
     container_name: minehost
@@ -37,9 +37,12 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
-      - NGROK_TOKEN=${NGROK_TOKEN}
-      - DEBIAN_FRONTEND=noninteractive
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+
+      NGROK_TOKEN: ${NGROK_TOKEN}
+      DEBIAN_FRONTEND: noninteractive
     volumes:
       - ./mondes:/home/fuentesr/mondes
       - /var/run/docker.sock:/var/run/docker.sock
